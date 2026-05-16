@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEGIS RAG · Enterprise Intelligence Dashboard</title>
+<style>
+  :root {
+    --bg: #0a0c14;
+    --surface: #111624;
+    --border: #1e2535;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #6c5ce7;
+    --success: #00b894;
+    --warning: #fdcb6e;
+    --danger: #d63031;
+    --info: #0984e3;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* SIDEBAR */
+  .sidebar {
+    width: 260px;
+    background: #0f1119;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0;
+    flex-shrink: 0;
+  }
+  .logo {
+    font-size: 1.6rem;
+    font-weight: 800;
+    padding: 0 1.5rem 1.5rem;
+    background: linear-gradient(135deg, var(--accent), var(--success));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .nav-item {
+    padding: 0.75rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 3px solid transparent;
+    font-size: 0.9rem;
+  }
+  .nav-item:hover, .nav-item.active {
+    background: rgba(108, 92, 231, 0.08);
+    color: var(--text);
+    border-left-color: var(--accent);
+  }
+  .nav-icon { width: 20px; text-align: center; font-size: 1rem; }
+  .role-selector {
+    margin: auto 1.5rem 1.5rem;
+    padding: 0.6rem 1rem;
+    background: #1a1f2f;
+    border-radius: 8px;
+    border: 1px solid #2d3548;
+    color: white;
+    font-weight: 500;
+    font-size: 0.85rem;
+    cursor: pointer;
+    width: calc(100% - 3rem);
+  }
+  
+  /* MAIN */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .top-bar {
+    padding: 1rem 2rem;
+    background: #0f1119;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .top-bar h2 { font-size: 1.1rem; color: var(--text); }
+  .top-bar .subtitle { font-size: 0.8rem; color: var(--muted); margin-left: 0.5rem; }
+  .user-badge {
+    background: #1e2535;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .clearance {
+    padding: 0.15rem 0.6rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+  }
+  .clearance.low { background: var(--danger); color: white; }
+  .clearance.medium { background: var(--warning); color: #0a0c14; }
+  .clearance.high { background: var(--success); color: #0a0c14; }
+  .clearance.top { background: #ffd700; color: #0a0c14; }
+  
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  }
+  .card h3 { font-size: 1rem; margin-bottom: 0.8rem; color: var(--text); }
+  
+  /* QUERY AREA */
+  .query-row {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+  .query-input {
+    flex: 1;
+    background: #0a0c14;
+    border: 1px solid #2d3548;
+    border-radius: 10px;
+    padding: 0.9rem 1.2rem;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: border 0.2s;
+  }
+  .query-input:focus { border-color: var(--accent); }
+  .btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 0.85rem 1.8rem;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #5a4bd1; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(108,92,231,0.3); }
+  .btn:active { transform: translateY(0); }
+  
+  /* PIPELINE */
+  .pipeline {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+  }
+  .step {
+    background: #1a1f2f;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    transition: all 0.3s;
+    border: 1px solid transparent;
+  }
+  .step.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(108,92,231,0.4);
+  }
+  
+  /* RESPONSE */
+  .response-box {
+    background: #0f1119;
+    border-radius: 12px;
+    padding: 1.2rem;
+    border-left: 4px solid var(--accent);
+    line-height: 1.7;
+    min-height: 60px;
+    font-size: 0.95rem;
+  }
+  .citation-badge {
+    background: #1e2535;
+    padding: 0.1rem 0.5rem;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-block;
+    margin: 0 0.2rem;
+  }
+  .citation-badge:hover { background: var(--accent); color: white; }
+  .confidence-bar {
+    height: 6px;
+    background: #2d3548;
+    border-radius: 3px;
+    margin: 0.8rem 0;
+    overflow: hidden;
+  }
+  .confidence-fill {
+    height: 100%;
+    background: var(--success);
+    transition: width 0.5s ease;
+    border-radius: 3px;
+  }
+  .metrics {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 0.3rem;
+  }
+  .metrics span { font-weight: 600; color: var(--text); }
+  
+  /* TABS */
+  .tab-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .tab-full { grid-column: 1 / -1; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  th, td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  th { background: #1a1f2f; color: var(--muted); font-weight: 600; }
+  .badge-yes { color: var(--success); font-weight: 700; }
+  .badge-no { color: var(--danger); font-weight: 700; }
+  .badge-partial { color: var(--warning); font-weight: 700; }
+  
+  /* PERIODIC TABLE */
+  .periodic-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+  }
+  .pt-cell {
+    background: #1a1f2f;
+    border-radius: 8px;
+    padding: 0.5rem;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+    border: 1px solid #2d3548;
+  }
+  .pt-cell:hover { background: var(--accent); color: white; transform: translateY(-2px); }
+  .cat-Foundation { border-left: 3px solid #a78bfa; }
+  .cat-Retrieval { border-left: 3px solid #06b6d4; }
+  .cat-Agentic { border-left: 3px solid #f59e0b; }
+  .cat-Security { border-left: 3px solid #ef4444; }
+  .cat-Orchestration { border-left: 3px solid #10b981; }
+  
+  /* AUDIT */
+  .audit-log {
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+  .audit-entry {
+    padding: 0.3rem 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .audit-entry .time { color: var(--info); }
+  .audit-entry .action-block { color: var(--danger); font-weight: 600; }
+  .audit-entry .action-success { color: var(--success); font-weight: 600; }
+  
+  @media (max-width: 768px) {
+    .sidebar { width: 70px; }
+    .sidebar .nav-item span, .sidebar .logo { display: none; }
+    .tab-grid { grid-template-columns: 1fr; }
+    .periodic-grid { grid-template-columns: repeat(3,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">⚡ AEGIS RAG</div>
+  <div class="nav-item active" data-tab="chat"><span class="nav-icon">💬</span> <span>Query Interface</span></div>
+  <div class="nav-item" data-tab="arch"><span class="nav-icon">🏗️</span> <span>Architecture</span></div>
+  <div class="nav-item" data-tab="data"><span class="nav-icon">🗄️</span> <span>Data Sources</span></div>
+  <div class="nav-item" data-tab="rbac"><span class="nav-icon">🔐</span> <span>RBAC Matrix</span></div>
+  <div class="nav-item" data-tab="periodic"><span class="nav-icon">🧪</span> <span>AI Periodic Table</span></div>
+  <div class="nav-item" data-tab="audit"><span class="nav-icon">📋</span> <span>Audit Log</span></div>
+  <select id="roleSelect" class="role-selector" onchange="switchRole()">
+    <option value="intern">🧑‍💻 Intern (Low)</option>
+    <option value="engineer" selected>👨‍💻 Engineer (Medium)</option>
+    <option value="hr_manager">👩‍💼 HR Manager (High)</option>
+    <option value="executive">👔 Executive (Top)</option>
+  </select>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="top-bar">
+    <div>
+      <h2 style="display:inline;">Enterprise RAG Intelligence</h2>
+      <span class="subtitle">· Tier 5 Hybrid Search · NLI Guard Active · RBAC Enforced</span>
+    </div>
+    <div class="user-badge">
+      <span id="roleLabel">Engineer</span>
+      <span id="clearanceBadge" class="clearance medium">Medium</span>
+    </div>
+  </div>
+  <div class="content" id="tabContent"></div>
+</div>
+
+<script>
+  // ============ DATA ============
+  const roles = {
+    intern: { clearance: 0, depts: ['general'], allowedRoles: ['intern'], label: 'Intern', badge: 'low', badgeText: 'Low' },
+    engineer: { clearance: 1, depts: ['engineering','general'], allowedRoles: ['engineer','intern'], label: 'Engineer', badge: 'medium', badgeText: 'Medium' },
+    hr_manager: { clearance: 2, depts: ['hr','general'], allowedRoles: ['hr_manager','exec'], label: 'HR Manager', badge: 'high', badgeText: 'High' },
+    executive: { clearance: 3, depts: ['engineering','hr','finance','legal','general'], allowedRoles: ['exec','hr_manager','cfo'], label: 'Executive', badge: 'top', badgeText: 'Top' }
+  };
+
+  const chunks = [
+    { id:'c1', text:'Salary bands for L4 engineers: $80,000-$110,000. L5: $100,000-$140,000. Only HR and executives can view.', source:'HR_Compensation.pdf', allowedRoles:['hr_manager','exec'], clearance:2 },
+    { id:'c2', text:'Q3 server uptime: 99.97%. Critical error rate: 0.02%. New patch v2.4.1 fixes CVE-2025-1234.', source:'infra_logs.json', allowedRoles:['engineer','exec'], clearance:1 },
+    { id:'c3', text:'SOX control AC-4: Access reviews must be conducted quarterly by designated auditors.', source:'compliance_SOX.pdf', allowedRoles:['exec'], clearance:3 },
+    { id:'c4', text:'Project Orion launch delayed to November 2025 due to supply chain disruptions.', source:'project_status.csv', allowedRoles:['engineer','exec','hr_manager'], clearance:2 },
+    { id:'c5', text:'Interns must not access financial or HR data. Violation leads to immediate termination.', source:'corporate_policy.pdf', allowedRoles:['hr_manager','exec','intern'], clearance:0 },
+    { id:'c6', text:'New security patch v2.4.1 fixes critical vulnerability CVE-2025-1234 in the authentication module.', source:'eng_release_notes.txt', allowedRoles:['engineer','exec'], clearance:1 },
+    { id:'c7', text:'Employee performance reviews occur bi-annually in June and December.', source:'HR_Process.pdf', allowedRoles:['hr_manager','exec'], clearance:2 },
+    { id:'c8', text:'Q4 revenue projection: $45M, up 12% YoY. Details confidential.', source:'finance_report.csv', allowedRoles:['exec','cfo'], clearance:3 },
+  ];
+
+  let currentRole = 'engineer';
+  let currentTab = 'chat';
+  let auditEntries = [];
+
+  // ============ HELPERS ============
+  function addAudit(action, detail) {
+    const now = new Date().toLocaleTimeString();
+    auditEntries.unshift({ time: now, action, detail });
+    if (auditEntries.length > 60) auditEntries.pop();
+  }
+
+  function simpleSimilarity(query, text) {
+    const qWords = query.toLowerCase().split(/\s+/);
+    const tWords = text.toLowerCase().split(/\s+/);
+    let match = 0;
+    qWords.forEach(w => { if (tWords.includes(w)) match++; });
+    return match / Math.max(qWords.length, 1);
+  }
+
+  function runQuery(query, roleKey) {
+    const user = roles[roleKey];
+    // RBAC filter
+    const allowed = chunks.filter(c => 
+      c.clearance <= user.clearance && 
+      c.allowedRoles.some(r => user.allowedRoles.includes(r))
+    );
+    // Score & rank
+    let scored = allowed.map(c => ({
+      chunk: c,
+      score: simpleSimilarity(query, c.text)
+    })).sort((a,b) => b.score - a.score);
+    
+    const topK = scored.slice(0, 5);
+    const blocked = chunks.length - allowed.length;
+    
+    if (topK.length === 0 || topK[0].score < 0.1) {
+      return { 
+        answer: '🚫 I cannot answer due to insufficient permissions or lack of relevant data.', 
+        sources: [], 
+        confidence: 0, 
+        nli: 0,
+        blocked 
+      };
+    }
+    
+    // Build answer
+    let answer = 'Based on available enterprise data:\n';
+    topK.forEach((s, i) => {
+      answer += `\n• ${s.chunk.text} [${s.chunk.id}]`;
+    });
+    const confidence = Math.min(0.98, topK[0].score * 0.8 + 0.2);
+    const nli = confidence * 0.95 + 0.05;
+    
+    return {
+      answer,
+      sources: topK.map(s => ({ id: s.chunk.id, source: s.chunk.source, snippet: s.chunk.text.slice(0,100) })),
+      confidence,
+      nli,
+      blocked
+    };
+  }
+
+  // ============ RENDER ============
+  function renderChat() {
+    return `
+      <div class="card">
+        <div class="query-row">
+          <input type="text" id="queryInput" class="query-input" placeholder="🔍 Ask anything across enterprise silos..." value="What are the salary bands for L4 engineers?">
+          <button class="btn" onclick="submitQuery()">⚡ Query</button>
+        </div>
+        <div class="pipeline" id="pipeline">
+          <span class="step">🔐 Auth</span>
+          <span class="step">🧠 Intent</span>
+          <span class="step">🔒 RBAC Filter</span>
+          <span class="step">🔎 Retrieve</span>
+          <span class="step">🔄 Rerank</span>
+          <span class="step">✨ Generate</span>
+          <span class="step">✅ NLI Verify</span>
+        </div>
+        <div>
+          <div class="response-box" id="responseText">Your grounded, citation-backed answer will appear here.</div>
+          <div class="confidence-bar"><div class="confidence-fill" id="confBar" style="width:0%"></div></div>
+          <div class="metrics">
+            <span>Confidence: <span id="confValue">0%</span></span>
+            <span>NLI Score: <span id="nliValue">-</span></span>
+            <span>Chunks Retrieved: <span id="chunkCount">0</span></span>
+            <span>RBAC Blocked: <span id="blockedCount">0</span></span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function submitQuery() {
+    const q = document.getElementById('queryInput').value;
+    addAudit('QUERY', q);
+    
+    // Animate pipeline
+    const steps = document.querySelectorAll('.step');
+    steps.forEach(s => s.classList.remove('active'));
+    let delay = 150;
+    steps.forEach((step, i) => {
+      setTimeout(() => step.classList.add('active'), delay * i);
+    });
+    
+    setTimeout(() => {
+      const result = runQuery(q, currentRole);
+      document.getElementById('responseText').innerHTML = result.answer
+        .replace(/\[(c\d+)\]/g, '<span class="citation-badge" title="Click for source">[$1]</span>')
+        .replace(/\n/g, '<br>');
+      document.getElementById('confBar').style.width = (result.confidence * 100) + '%';
+      document.getElementById('confValue').innerText = Math.round(result.confidence * 100) + '%';
+      document.getElementById('nliValue').innerText = Math.round(result.nli * 100) + '%';
+      document.getElementById('chunkCount').innerText = result.sources.length;
+      document.getElementById('blockedCount').innerText = result.blocked;
+      addAudit('RESPONSE', `Confidence: ${Math.round(result.confidence*100)}% | Chunks: ${result.sources.length} | Blocked: ${result.blocked}`);
+    }, 900);
+  }
+
+  function renderArchitecture() {
+    return `
+      <div class="card tab-full">
+        <h3>🏗️ Production Architecture — 7-Stage Secure Pipeline</h3>
+        <pre style="background:#1a1f2f;color:#e2e8f0;padding:1rem;border-radius:10px;font-size:0.8rem;line-height:1.4;overflow-x:auto;">
+User → [OAuth2 / JWT Gateway]
+         ↓
+  [Query Orchestrator]
+   ├─ Intent Classifier (DistilBERT)
+   ├─ Query Rewriter (LLM)
+   └─ Silo Router (PDF / SQL / JSON / CSV)
+         ↓
+  [RBAC PRE-FILTER] ← allowed_roles ∩ user.roles, clearance check
+         ↓
+  [Hybrid Retrieval] — FAISS (cosine) + BM25 (keyword)
+   ├─ PDF Index   ├─ SQL Index   ├─ JSON Log Index   └─ CSV Index
+         ↓
+  [Cross-Encoder Reranker] — BGE-Reranker-v2
+         ↓
+  [LLM Generator] — GPT-4 / Llama-3 (citation-anchored prompt)
+         ↓
+  [NLI Hallucination Checker] — DeBERTa-NLI
+         ↓
+  Response + Citations + Confidence + Audit Log</pre>
+      </div>`;
+  }
+
+  function renderDataSources() {
+    return `
+      <div class="card tab-full">
+        <h3>🗄️ Synthetic Enterprise Corpus (8 chunks shown)</h3>
+        <table>
+          <tr><th>ID</th><th>Source</th><th>Type</th><th>Clearance</th><th>Authorized Roles</th><th>Preview</th></tr>
+          ${chunks.map(c => `
+            <tr>
+              <td><strong>${c.id}</strong></td>
+              <td>${c.source}</td>
+              <td>${c.source.endsWith('.pdf')?'PDF':c.source.endsWith('.json')?'JSON':'CSV'}</td>
+              <td>L${c.clearance}</td>
+              <td>${c.allowedRoles.join(', ')}</td>
+              <td style="text-align:left;font-size:0.8rem;">${c.text.slice(0,60)}...</td>
+            </tr>
+          `).join('')}
+        </table>
+      </div>`;
+  }
+
+  function renderRBAC() {
+    const roleNames = Object.keys(roles);
+    const categories = ['HR Data','Engineering','Financial','Compliance','General'];
+    return `
+      <div class="card tab-full">
+        <h3>🔐 Role-Based Access Control Matrix</h3>
+        <table>
+          <tr><th>Role</th>${categories.map(c=>`<th>${c}</th>`).join('')}</tr>
+          <tr><td><strong>Intern</strong></td><td class="badge-no">❌</td><td class="badge-no">❌</td><td class="badge-no">❌</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td><strong>Engineer</strong></td><td class="badge-no">❌</td><td class="badge-yes">✅</td><td class="badge-no">❌</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td><strong>HR Manager</strong></td><td class="badge-yes">✅</td><td class="badge-partial">🟡</td><td class="badge-no">❌</td><td class="badge-no">❌</td><td class="badge-yes">✅</td></tr>
+          <tr><td><strong>Executive</strong></td><td class="badge-yes">✅</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td><td class="badge-yes">✅</td></tr>
+        </table>
+        <p style="margin-top:1rem;color:var(--muted);font-size:0.85rem;">✅ Full Access &nbsp; 🟡 Partial &nbsp; ❌ Denied</p>
+      </div>`;
+  }
+
+  function renderPeriodic() {
+    const elements = [
+      {name:'Embedding',cat:'Foundation'},{name:'Vector DB',cat:'Retrieval'},{name:'RAG',cat:'Retrieval'},{name:'LLM',cat:'Foundation'},
+      {name:'Prompt',cat:'Orchestration'},{name:'Agent',cat:'Agentic'},{name:'Function Call',cat:'Agentic'},{name:'Orchestration',cat:'Orchestration'},
+      {name:'Validation',cat:'Security'},{name:'Red Team',cat:'Security'},{name:'Synthetic Data',cat:'Foundation'},{name:'Interpretability',cat:'Orchestration'},
+      {name:'Chain of Thought',cat:'Agentic'},{name:'Emergent Behavior',cat:'Agentic'},{name:'Framework',cat:'Orchestration'},{name:'Deployment',cat:'Orchestration'},
+      {name:'Re-ranker',cat:'Retrieval'},{name:'Hybrid Search',cat:'Retrieval'},{name:'RLHF',cat:'Foundation'},{name:'Guardrails',cat:'Security'},
+      {name:'Audit Trail',cat:'Security'},{name:'NLI',cat:'Security'},{name:'Chunking',cat:'Retrieval'},{name:'Tokenizer',cat:'Foundation'},
+    ];
+    return `
+      <div class="card tab-full">
+        <h3>🧪 GenAI & Agentic AI Periodic Table</h3>
+        <div class="periodic-grid">
+          ${elements.map(e => `
+            <div class="pt-cell cat-${e.cat}" title="${e.cat}: ${e.name}">
+              <div style="font-size:0.6rem;color:var(--muted);">${e.cat.slice(0,4)}</div>
+              <div>${e.name}</div>
+            </div>
+          `).join('')}
+        </div>
+        <p style="margin-top:0.8rem;font-size:0.75rem;color:var(--muted);">
+          Foundation (purple) · Retrieval (cyan) · Agentic (gold) · Security (red) · Orchestration (green)
+        </p>
+      </div>`;
+  }
+
+  function renderAudit() {
+    return `
+      <div class="card tab-full">
+        <h3>📋 Immutable Audit Trail</h3>
+        <div class="audit-log" id="auditLogContainer">
+          ${auditEntries.length === 0 ? '<p style="color:var(--muted);">No audit entries yet. Run a query to see the log.</p>' : 
+            auditEntries.map(e => `
+              <div class="audit-entry">
+                <span class="time">[${e.time}]</span>
+                <span class="${e.action === 'QUERY' ? 'action-success' : e.action === 'BLOCKED' ? 'action-block' : ''}">${e.action}</span>
+                — ${e.detail}
+              </div>
+            `).join('')
+          }
+        </div>
+      </div>`;
+  }
+
+  // ============ NAVIGATION ============
+  function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    const content = document.getElementById('tabContent');
+    switch(tab) {
+      case 'chat': content.innerHTML = renderChat(); break;
+      case 'arch': content.innerHTML = renderArchitecture(); break;
+      case 'data': content.innerHTML = renderDataSources(); break;
+      case 'rbac': content.innerHTML = renderRBAC(); break;
+      case 'periodic': content.innerHTML = renderPeriodic(); break;
+      case 'audit': content.innerHTML = renderAudit(); break;
+    }
+  }
+
+  function switchRole() {
+    currentRole = document.getElementById('roleSelect').value;
+    const role = roles[currentRole];
+    document.getElementById('roleLabel').innerText = role.label;
+    const badge = document.getElementById('clearanceBadge');
+    badge.innerText = role.badgeText;
+    badge.className = 'clearance ' + role.badge;
+    addAudit('ROLE SWITCH', `${role.label} (Clearance: ${role.badgeText})`);
+  }
+
+  // ============ INIT ============
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => switchTab(item.dataset.tab));
+    });
+    switchTab('chat');
+    addAudit('SYSTEM', 'AEGIS RAG Dashboard initialized');
+  });
+</script>
+</body>
+</html>
