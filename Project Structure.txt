@@ -1,0 +1,33 @@
+aegis-rag/
+├── manage.py                    # Django management script
+├── requirements.txt             # Python dependencies
+├── Dockerfile                   # Docker configuration
+├── docker-compose.yml           # Multi-container setup
+├── README.md                    # This file
+├── AEGIS_RAG_Production_Manual.pdf  # Full documentation
+├── aegis_dashboard.html         # Standalone interactive dashboard
+│
+├── aegis_rag/                   # Django project settings
+│   ├── settings.py
+│   ├── urls.py
+│   └── wsgi.py
+│
+├── core/                        # Main application
+│   ├── models.py                # UserProfile, Chunk, AuditLog
+│   ├── retrieval.py             # HybridRetriever + RBAC filter
+│   ├── nli.py                   # NLIVerifier (DeBERTa)
+│   ├── llm.py                   # LLM wrapper (GPT-4)
+│   ├── views.py                 # API endpoints
+│   ├── urls.py                  # URL routing
+│   ├── admin.py                 # Django admin
+│   └── management/
+│       └── commands/
+│           └── generate_synthetic_data.py
+│
+├── templates/                   # HTML templates
+│   └── core/
+│       └── dashboard.html
+│
+└── static/                      # Static assets
+    └── css/
+        └── style.css
